@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Subtasks",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "title", "type", "status", "current_stage"],
+    "properties": {
+      "id": { "type": "string" },
+      "title": { "type": "string" },
+      "type": { "type": "string", "enum": ["新增UI", "修改逻辑", "BUGFIX", "重构", "配置", "文档"] },
+      "data_source": { "type": "string" },
+      "figma_node": { "type": "string" },
+      "depends_on": { "type": "array", "items": { "type": "string" } },
+      "status": { "type": "string", "enum": ["PENDING", "IN_PROGRESS", "DONE"] },
+      "current_stage": { "type": "string" },
+      "related_commit": { "type": "string" }
+    }
+  }
+}
