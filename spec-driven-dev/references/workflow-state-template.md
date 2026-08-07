@@ -26,6 +26,20 @@ confirmed:
   execution: false    # 代码已执行
   review: false       # 审查已通过
 
+roles:                # 角色确认记录（顺序：设计→编码→骨架；声明须用户确认）
+  design:
+    owner: ""         # <模型名或人名>@<git user.name>
+    declared_at: ""
+    user_confirmed: false
+  coding:
+    owner: ""
+    declared_at: ""
+    user_confirmed: false
+  skeleton:
+    owner: ""
+    declared_at: ""
+    user_confirmed: false
+
 review:
   score: 0            # 审查综合评分
   passed: false       # 是否通过

@@ -56,6 +56,55 @@ description: |
     → [阶段 7] 编译与运行验证 → [阶段 8] 验收/复盘
 ```
 
+### 角色确认（动手前强制）
+
+任何 AI 模型或协作者在进入下述任何阶段动手前，必须先确认自己在本需求中的角色，输出角色声明；**声明必须经用户明确确认（如"确认角色""可以"）后才生效**，确认后写入该需求 `workflow-state.md` 的 `roles` 段（含 `user_confirmed` 标记）。未声明角色或角色未获用户确认，不得修改任何文件；模型不得自行确认角色。
+
+**三类角色**：
+
+| 角色 | 负责阶段 | 允许修改的范围 |
+|------|----------|----------------|
+| **设计** | 阶段 1-3：需求澄清、spec/plan/tasks（或工程工作流的 TECH_SPEC/subtasks） | `Agentic/sdd/<需求>/` 设计文档与 workflow-state 设计字段 |
+| **编码** | 阶段 4-7：代码执行、预自检、审查、编译验证 | plan 列明的业务文件 + tasks.md 状态/执行记录字段 + workflow-state 执行字段；经用户确认后可修正 plan/tasks/spec |
+| **更新骨架** | 独立于阶段：同步项目骨架/记忆文档 | 项目骨架文档（如 project_wiki、runtime 记忆文件，以项目治理文档界定为准） |
+
+**角色声明固定格式**：
+
+```
+🎭 角色声明
+角色：设计 | 编码 | 更新骨架
+执行者：<模型名或人名>@<git user.name>
+需求：<需求名 / workflow-state 路径>
+本次允许修改范围：<对应角色范围>
+```
+
+**workflow-state.md roles 段模板**：
+
+```yaml
+roles:
+  design:
+    owner: ""
+    declared_at: ""
+    user_confirmed: false   # 用户确认角色声明后置为 true
+  coding:
+    owner: ""
+    declared_at: ""
+    user_confirmed: false
+  skeleton:
+    owner: ""
+    declared_at: ""
+    user_confirmed: false
+```
+
+**角色顺序依赖**：设计 → 编码 → 更新骨架。编码依赖用户已确认的设计产物（spec/plan/tasks 或 TECH_SPEC/subtasks）：不存在设计产物时禁止编码，必须先回到阶段 1 完成设计。更新骨架依赖编码验收通过（阶段 8），验收通过前不得同步骨架文档。
+
+**交接规则**：
+- 同一需求内三个角色允许由同一执行者兼任，roles 记录用于追溯谁在何时承担了什么角色，不作分离强制。
+- 编码角色接手前必须读 workflow-state，确认需求与方案已获用户确认，然后声明 coding 角色再动手。
+- 编码角色可以修正 plan/tasks/spec（设计未必一次到位），但调整前必须向用户说明调整内容与理由并获得确认，确认后在设计文档中记录调整；未经确认禁止修改设计文档。
+- 骨架角色更新骨架前必须向用户说明拟同步的内容并获得确认；骨架角色不动业务源码；红线、agents 规则等治理变更必须走完整 SDD。
+- 任何角色发现任务超出自身范围，必须停止并向用户报告。
+
 ### 如何判断当前处于哪个阶段？
 
 **每次启动开发任务时，先执行阶段 0 入口判断，然后执行以下检查（不可跳过）**：
@@ -240,6 +289,7 @@ description: |
 
 | 检查项 | 通过标准 |
 |--------|---------|
+| **SDD 产物存在** | 本需求 plan.md/tasks.md（或 TECH_SPEC/subtasks）存在且已经用户确认，否则禁止进入阶段 4 |
 | **文件清单对齐** | tasks.md 中涉及的所有文件都在 plan.md 的"涉及文件"清单中，无计划外文件 |
 | **依赖闭环** | 每个 task 的依赖链无循环，首个 task 的依赖为"无"或已存在于代码库中 |
 | **完成标准可执行** | 每个 task 的"完成标准"都可以在当前环境下验证（如"编译通过"需确认编译命令已知） |
@@ -605,6 +655,19 @@ confirmed:
   compile_method: true  # 阶段 1 编译与运行验证方式已确认
   design: true        # 方案已确认（含 plan.md 中的编译与运行验证方案）
   execution: true     # 代码已执行
+roles:                # 角色确认记录（顺序：设计→编码→骨架；声明须用户确认）
+  design:
+    owner: "<模型名或人名>@<git user.name>"
+    declared_at: "YYYY-MM-DD"
+    user_confirmed: true
+  coding:
+    owner: ""
+    declared_at: ""
+    user_confirmed: false
+  skeleton:
+    owner: ""
+    declared_at: ""
+    user_confirmed: false
 compiled:
   status: "passed"    # 阶段 7 结果：passed / skipped / failed / not-started
   command: "make"     # 实际使用的编译命令
@@ -657,6 +720,9 @@ artifacts:
 15. **禁止进入纯 plan 模式**：方案设计是执行的前提，禁止只输出 plan.md/tasks.md 而不继续推进，或在未获得"确认执行"类有效确认时长期停留在阶段 2
 16. **禁止进入 ask 用户对话模式**：除阶段 3 等必要的用户确认检查点外，各阶段应直接输出结构化交付物（清单、表格、代码块），禁止使用 `AskUserQuestion` 开启多轮碎片化追问；待确认项须一次性结构化列出
 17. **禁止用非结构化内容替代必要交付物**：阶段输出必须保持结构化，确保用户可快速确认并衔接后续流程
+18. **未声明角色或角色声明未获用户确认就动手改文件**：角色确认是动手前置条件，声明必须经用户明确确认后写入 workflow-state.md 的 `roles` 段（含 `user_confirmed` 标记），模型不得自行确认角色
+19. **未经用户确认修改设计文档或越权扩大范围**：编码角色修正 plan/tasks/spec 必须先向用户说明并获得确认，确认后在设计文档中记录调整；骨架更新须先获用户确认；任何角色不得修改自身允许范围外的文件
+20. **无 SDD 设计产物直接编码**：编码依赖已确认设计，进入阶段 4 前必须确认 plan.md/tasks.md（或 TECH_SPEC/subtasks）存在且经用户确认，否则必须回到阶段 1 完成设计；更新骨架必须在编码验收通过后进行
 
 ## 项目工程化工作流对接
 

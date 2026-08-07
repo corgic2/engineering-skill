@@ -3,9 +3,9 @@ red_lines:
     level: critical
     scope: global
     stage: verify
-    trigger: 编译未通过或自修复超过3轮仍失败
+    trigger: 构建退出码非0、缺少 BUILD_PASS 标记或 sentinel 过期，或自修复超过3轮仍失败
     action: 停止执行，报告用户
-    message: 编译退出码0为唯一判据，自修复硬上限3轮
+    message: 构建成功以退出码0+BUILD_PASS+sentinel未过期三重判据为准，自修复硬上限3轮；引用既有构建结果前先跑 check_build_freshness.py
 
   - id: RL-02
     level: critical
