@@ -42,5 +42,13 @@ echo "[pre-commit] Running project_wiki stale check..."
   exit 1
 }
 
+if [[ -f "${WORKFLOW_ROOT}/tools/validate_handoff.py" ]]; then
+  echo "[pre-commit] Validating handoff blocks..."
+  "${PYTHON}" "${WORKFLOW_ROOT}/tools/validate_handoff.py" || {
+    echo "[pre-commit] handoff 交接块校验失败，请修复后重新提交。" >&2
+    exit 1
+  }
+fi
+
 echo "[pre-commit] PASS."
 exit 0

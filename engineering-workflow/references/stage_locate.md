@@ -20,18 +20,20 @@
 
 ### 3. 关键词搜索
 
-- 使用 `rg` 或 `ctags` 脚本搜索，**不进 LLM**。
+- 项目存在 codegraph 索引（`.codegraph/`）时优先 `codegraph query <symbol>`；否则使用 `rg` 或 `ctags` 脚本搜索，**不进 LLM**。
 - 输入候选搜索词集合（来自 5 维矩阵），输出命中文件与行号。
 - 典型命令：
   ```bash
-  rg -n -t cpp "XYZTipsView|showWarningTips" src/MailClient/MList/
+  codegraph query XYZTipsView   # 有索引时
+  rg -n -t cpp "XYZTipsView|showWarningTips" src/MailClient/MList/   # 无索引兑底
   ```
 
 ### 4. 调用链追踪
 
-- 读取相关文件片段（~10K token）。
+- 有索引时用 `codegraph callers/callees <symbol>`、`codegraph impact <symbol> --depth 2` 取静态调用链与影响面，再读相关文件片段（~10K token）确认。
 - 向上追踪调用方，向下追踪被调方，画出关键调用链。
 - 标注数据流方向（如 CGI 字段 → 解析 → ViewModel → View）。
+- **图谱只覆盖静态结构**：Qt 信号/槽、事件、回调等运行时连接图谱不可见，其链路必须以 wiki/经验库记录为准，不得因图谱无记录而判定不存在。
 
 ### 5. 验证确认
 

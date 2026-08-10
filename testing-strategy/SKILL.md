@@ -120,8 +120,8 @@ description: |
 
 | 产物类型 | 存放位置 | 说明 |
 |---------|---------|------|
-| 测试用例文档 (`test-cases.md`) | `Agentic/sdd/<需求名称>/`（或项目约定的 `sdd/<需求名称>/`） | 与 spec/plan/tasks 同级，作为 SDD 设计产物 |
-| 测试策略说明 (`test-strategy.md`) | `Agentic/sdd/<需求名称>/` | 测试类型选择、覆盖度目标、风险评估 |
+| 测试用例文档 (`test-cases.md`) | `Agentic/sdd/<需求名称>/`（或项目约定的 `sdd/<需求名称>/`） | 仅 L 档复杂需求拆出；S/M 档并入 spec-plan.md「验证方案」章节 |
+| 测试策略说明 | 并入 `spec-plan.md`「验证方案」章节 | 测试类型选择、覆盖度目标、风险评估；不再独立成文（test-strategy.md 废止） |
 | 测试覆盖度报告 (`coverage-report.md`) | `Agentic/sdd/<需求名称>/` | 执行后回填的覆盖度评估 |
 | **可执行测试代码**（`.cpp` / `.py` / `.test.js` 等） | 按项目既有规范（如 `tests/`、`src/__tests__/`） | 唯一进入代码仓库的测试相关文件 |
 
@@ -138,11 +138,9 @@ description: |
 ```
 Agentic/sdd/fix-search-pagination/
 ├── workflow-state.md
-├── spec.md
-├── plan.md
-├── tasks.md
-├── test-cases.md          ← 本 Skill 产出的用例文档
-├── test-strategy.md       ← 测试策略与覆盖度目标
+├── spec-plan.md           ← spec+plan 合并，含「验证方案」章节（测试策略）
+├── tasks.md               ← 勾选项清单
+├── test-cases.md          ← 可选，仅 L 档拆出
 └── coverage-report.md     ← 执行后回填的覆盖度报告
 ```
 
@@ -150,7 +148,7 @@ Agentic/sdd/fix-search-pagination/
 
 ## 与 SDD 流程的协作
 
-### 在 plan.md 中嵌入测试
+### 在 spec-plan.md 中嵌入测试
 
 `spec-driven-agent` 设计阶段，测试任务应作为独立 Task 或每个 Task 的完成标准之一：
 

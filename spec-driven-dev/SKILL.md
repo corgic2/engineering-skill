@@ -43,6 +43,29 @@ description: |
 | "给我讲讲这个模块的设计" | ❌ 否 | 纯咨询 |
 | "把这个函数重构一下" | ✅ 是 | 涉及代码修改 |
 
+## 任务分级：S / M / L 路由（入场判断为开发任务后立即执行）
+
+进入阶段流程前先按体量与风险定档。**档位决定文档规格与环节合并方式，不决定门禁有无——所有档位都必须经过用户确认（阶段 3）、审查（阶段 6）、编译验证（阶段 7）。**
+
+| 档位 | 判定标准 | 设计产物 | 流程差异 |
+|------|---------|---------|---------|
+| **S 小修** | 单点 bug/小调整；预计改动 ≤3 个业务文件；无新增公开接口；不动架构与红线 | 简版需求确认单 + tasks.md（勾选项清单） | 免 spec-plan；阶段 5 并入阶段 6 一并执行；审查为单评审者简化版 |
+| **M 标准** | 单模块功能；多文件；可能有新接口 | spec-plan.md（spec+plan 合并，含验证方案专章）+ tasks.md | 全流程 |
+| **L 重型** | 跨模块、架构演进、协议/数据格式变更、推倒重来 | spec-plan.md + tasks.md（复杂时可拆出独立 test-cases.md） | 全流程 + 评审团（有 rubric 时） |
+
+**判定规则**：
+
+- 档位在阶段 1 需求确认单中注明（含理由），用户确认需求即确认档位，记入 workflow-state.md 的 `tier` 字段
+- 拿不准时从高不就低；执行中范围扩大（改动文件数或接口面超档）必须升档补齐产物，禁止以 S 档名义做 M 档的事
+- 设计完成后确认体量很小，可向用户申请降档
+- 历史教训：无分级时小任务会"违规跳步"累积治理债（豁免清单中的 stage_nonstandard / review_missing 即实证），分级是把事实存在的捷径合法化
+
+**文档纪律（防复读）**：
+
+- spec 与 plan 合并为 `spec-plan.md`：前段"为什么/边界/验收标准"，后段"怎么做/文件清单/风险/编译与运行验证方案/测试策略"。下文各阶段规则中的 `spec.md`/`plan.md` 均指合并后的 `spec-plan.md`
+- `tasks.md` 只留勾选项（id/标题/状态/涉及文件/一句话完成标准），**不复述 spec-plan 的步骤细节**——上游改动下游只引用
+- 同一信息在确认单、spec-plan、tasks 之间禁止复述超过一次
+
 ## 阶段路由：不走回头路，也不跳步
 
 > **明确禁止进入仅制定计划不执行的 plan 模式。触发本 Skill 后，必须严格按照以下 SDD 完整流程推进，涵盖设计、执行、验证、审查全阶段。**
@@ -64,7 +87,7 @@ description: |
 
 | 角色 | 负责阶段 | 允许修改的范围 |
 |------|----------|----------------|
-| **设计** | 阶段 1-3：需求澄清、spec/plan/tasks（或工程工作流的 TECH_SPEC/subtasks） | `Agentic/sdd/<需求>/` 设计文档与 workflow-state 设计字段 |
+| **设计** | 阶段 1-3：需求澄清、spec-plan/tasks（或工程工作流的 TECH_SPEC/subtasks） | `Agentic/sdd/<需求>/` 设计文档与 workflow-state 设计字段 |
 | **编码** | 阶段 4-7：代码执行、预自检、审查、编译验证 | plan 列明的业务文件 + tasks.md 状态/执行记录字段 + workflow-state 执行字段；经用户确认后可修正 plan/tasks/spec |
 | **更新骨架** | 独立于阶段：同步项目骨架/记忆文档 | 项目骨架文档（如 project_wiki、runtime 记忆文件，以项目治理文档界定为准） |
 
@@ -96,7 +119,7 @@ roles:
     user_confirmed: false
 ```
 
-**角色顺序依赖**：设计 → 编码 → 更新骨架。编码依赖用户已确认的设计产物（spec/plan/tasks 或 TECH_SPEC/subtasks）：不存在设计产物时禁止编码，必须先回到阶段 1 完成设计。更新骨架依赖编码验收通过（阶段 8），验收通过前不得同步骨架文档。
+**角色顺序依赖**：设计 → 编码 → 更新骨架。编码依赖用户已确认的设计产物（spec-plan/tasks 或 TECH_SPEC/subtasks）：不存在设计产物时禁止编码，必须先回到阶段 1 完成设计。更新骨架依赖编码验收通过（阶段 8），验收通过前不得同步骨架文档。
 
 **交接规则**：
 - 同一需求内三个角色允许由同一执行者兼任，roles 记录用于追溯谁在何时承担了什么角色，不作分离强制。
@@ -120,7 +143,7 @@ roles:
 | 检查项 | 如果存在 | 说明当前阶段 |
 |--------|---------|-------------|
 | 需求确认单 + 用户已确认 | 是 | ≥ 阶段 2，可以开始设计 |
-| spec.md + plan.md + tasks.md + 自评 ≥8.0 | 是 | ≥ 阶段 3，等待用户确认 |
+| 按档位的设计产物齐全（S：确认单+tasks；M/L：spec-plan.md+tasks.md）+ 自评 ≥8.0 | 是 | ≥ 阶段 3，等待用户确认 |
 | 用户明确说"确认执行"/"可以动手" | 是 | ≥ 阶段 4，可以执行代码 |
 | 代码已执行，有产出文件 | 是 | ≥ 阶段 5，执行执行后预自检 |
 | 执行后预自检通过（workflow-state.md 中 `pre_review_passed: true`） | 是 | ≥ 阶段 6，执行代码审查 |
@@ -148,7 +171,7 @@ roles:
 - 如需补充信息，在确认单的"待确认问题"中一次性列出，等待用户集中回复
 - 不要在未获得用户确认的情况下进入下一阶段
 
-**出口**：用户明确确认需求单（如"没问题，按这个做"、"确认"、"可以"）
+**出口**：用户明确确认需求单（如"没问题，按这个做"、"确认"、"可以"）。确认单中必须注明拟定档位（S/M/L）及理由，档位随需求一并确认
 
 ##### 阶段 1 附加：编译与运行验证方式确认（强制）
 
@@ -184,11 +207,11 @@ roles:
 
 #### 阶段 2：方案设计（强制）
 
-**触发条件**：需求已确认，还没有 spec/plan/tasks
+**触发条件**：需求已确认，还没有按档位的设计产物（spec-plan/tasks）
 
 **执行**：
-- 调用 spec-driven-agent 的设计阶段，产出 spec.md + plan.md + tasks.md
-- 完成模型自评（五维评分 ≥8.0）
+- 按 `tier` 档位产出设计产物（S：确认单+tasks 即设计，免独立设计文档；M/L：spec-plan.md + tasks.md，设计方法论参考 spec-driven-agent）
+- 完成模型自评（五维评分 ≥8.0；S 档简化为边界与回退两项核对）
 - **禁止在用户未审核方案前执行任何代码**
 
 **输出方式（禁止纯 plan 模式）**：
@@ -196,9 +219,9 @@ roles:
 - 直接输出结构化的 spec / plan / tasks 摘要，禁止使用 `AskUserQuestion` 反复追问用户
 - 所有待确认项应在方案摘要中结构化列出，避免进入只制定计划不执行的纯 plan 模式
 
-**plan.md 必须包含"编译与运行验证方案"专章**：
+**spec-plan.md 必须包含"编译与运行验证方案"专章**：
 
-在阶段 2 产出的 `plan.md` 中，必须单独设立"编译与运行验证方案"章节，内容至少包括：
+在阶段 2 产出的 `spec-plan.md`（M/L 档）中，必须单独设立"编译与运行验证方案"章节，内容至少包括：
 
 1. **已确认的编译方法**：
    - 构建系统
@@ -231,7 +254,7 @@ roles:
 - 每个涉及业务逻辑的 Task 必须伴随测试验证方案（单元/集成/边界/回归）
 - 在 plan.md 或 tasks.md 中明确关键路径的测试覆盖要求
 - 边界条件必须显式设计用例，禁止只测正常路径
-- 测试产物（`test-cases.md`、`test-strategy.md`）放在 `Agentic/sdd/<需求名称>/` 下，与 spec/plan/tasks 同级
+- 测试策略与用例作为 spec-plan.md 的「验证方案」章节，不再独立成文；L 档复杂度需要时可拆出 `test-cases.md`，放在 `Agentic/sdd/<需求名称>/` 下与 spec-plan/tasks 同级
 - 可执行测试代码按项目既有规范存放
 
 **出口**：自评 ≥8.0，且用户明确确认方案（如"确认执行"、"动手吧"）
@@ -289,7 +312,7 @@ roles:
 
 | 检查项 | 通过标准 |
 |--------|---------|
-| **SDD 产物存在** | 本需求 plan.md/tasks.md（或 TECH_SPEC/subtasks）存在且已经用户确认，否则禁止进入阶段 4 |
+| **SDD 产物存在** | 本需求按档位的设计产物（或 TECH_SPEC/subtasks）存在且已经用户确认，否则禁止进入阶段 4 |
 | **文件清单对齐** | tasks.md 中涉及的所有文件都在 plan.md 的"涉及文件"清单中，无计划外文件 |
 | **依赖闭环** | 每个 task 的依赖链无循环，首个 task 的依赖为"无"或已存在于代码库中 |
 | **完成标准可执行** | 每个 task 的"完成标准"都可以在当前环境下验证（如"编译通过"需确认编译命令已知） |
@@ -460,7 +483,7 @@ roles:
 
 #### 阶段 5：执行后预自检（执行者自检，不可跳过）
 
-**触发条件**：代码已执行完成
+**触发条件**：代码已执行完成（S 档任务不单独执行本阶段，自检清单并入阶段 6 一并执行）
 
 这是执行者视角的**快速自检**，在正式 code-review 之前把执行者自己最清楚的低级错误拦截掉，避免把明显问题推给审查环节。
 
@@ -518,7 +541,17 @@ roles:
 8. **代码质量深度检查**：可读性、重复度、命名一致性、依赖引入合理性、是否过度设计
 9. **五维评分**：按以下五个维度评分
 
-**阶段 6 五维评分定义（适配审查前置）**：
+##### 评审团与校准协议（启用工程化工作流的项目）
+
+当项目存在 `AIRunWorkDocs/quality/rubric.yaml` 时，阶段 6 升级为评审团模式（S 档任务除外：单评审者 + 锚定清单即可）。本 Skill 只定义协议，标尺内容以项目数据文件为准：
+
+1. **生成者≠评分者**：评审在独立上下文（子代理）中进行，输入仅 diff + plan + constitution + 红线，不带生成历史，避免被生成者叙事锚定。机器门禁（编译/lint/测试/schema 校验）先行且为 pass/fail，不参与打分，打分只针对脚本判不了的维度。
+2. **多评审者**：2-3 个评审者，使用不同透镜（正确性/架构/对抗）；跨模型可用时用对立模型评审（编码模型的对立面），去相关性是主要收益。
+3. **锚定清单**：评分以 rubric.yaml 的逐条判断项（是/否/不适用，尽量客观可判）为准，得分=命中项加总，保证跨评审者、跨时间可比。下方五维评分是无项目标尺时的默认基线。
+4. **聚合与升级**：取中位数不取平均；任一维度评审者分差 >2 → 标记 low-confidence 并升级（用户裁决或加跑一轮 judge 评审）。分歧本身是信号，不得被平均掉。
+5. **校准环**：验收结果回写 `AIRunWorkDocs/quality/calibration.yaml`——AI 评分 ≥8.0 但验收打回记为漏判（逃逸），验收整改轮次回写到未拦住该问题的标尺维度；复盘时根据阻塞逃逸率与评分-验收一致率调整标尺清单项与阈值。标尺必须含"验收对齐"维度（验收标准逐条映射证据），实践证据：代码质量高分与验收通过无必然相关性。
+
+**阶段 6 五维评分定义（默认基线，项目无 rubric.yaml 时适用；适配审查前置）**：
 
 | 维度 | 检查要点 | 典型不通过项 |
 |------|----------|-------------|
@@ -606,6 +639,7 @@ roles:
 **执行**：
 - 调用 execution-retrospective，产出 retrospective.md + skill-evolution-patch.md
 - 根据 patch 修改对应 Skills 文件
+- **规则挖掘**：把本轮 review 报告的阻塞/已处理过程问题、timeline 用户纠正、验收整改记录规范化为 violations 条目；同一 pattern 累计 ≥2 次 → 按 engineering-workflow「红线生命周期」起草候选红线进隔离区（probation，warn-only），交用户裁决；单次违规只进经验库
 - **同步更新所有状态文件**：
   - `tasks.md`：将已完成的 tasks 标记为 `done`，将遗留/新增的 tasks 标记为 `pending`
   - `workflow-state.md`：更新 `stage` 为当前阶段，更新 `review` 状态
@@ -649,6 +683,7 @@ roles:
 # workflow-state.md
 
 task: "修复搜索分页 bug"
+tier: "M"             # 任务分级：S / M / L（阶段 1 随需求一并确认；决定文档规格与环节合并方式）
 stage: "code-review"  # 当前阶段，可选值参考下方
 confirmed:
   requirement: true   # 需求已确认
@@ -682,14 +717,21 @@ pre_review:
 review:
   score: 8.6          # 审查评分
   passed: true        # 是否通过
-artifacts:
+artifacts:            # 按档位登记；S 档只有 requirement + tasks
   requirement: "Agentic/sdd/<需求名称>/req-confirm.md"
-  spec: "Agentic/sdd/<需求名称>/spec.md"
-  plan: "Agentic/sdd/<需求名称>/plan.md"
-  tasks: "Agentic/sdd/<需求名称>/tasks.md"
-  test_strategy: "Agentic/sdd/<需求名称>/test-strategy.md"
-  test_cases: "Agentic/sdd/<需求名称>/test-cases.md"
+  spec_plan: "Agentic/sdd/<需求名称>/spec-plan.md"   # M/L 档：spec+plan 合并（含验证方案专章）
+  tasks: "Agentic/sdd/<需求名称>/tasks.md"           # 勾选项清单，不复述 spec-plan 步骤
+  test_cases: "Agentic/sdd/<需求名称>/test-cases.md" # 可选，L 档复杂时拆出
   review: "Agentic/sdd/<需求名称>/review-report.md"
+handoff:              # 结构化交接块（机器真源，工程化项目由 validate_handoff.py 校验）
+  context_manifest:   # 恢复现场的确定性取件单；跨会话/跨模型接力只读此处指定文件
+    preload: ["Agentic/sdd/<需求名称>/workflow-state.md"]
+    on_demand: []
+    skip: []
+    budget_tokens: 8000
+  decisions:
+    - {id: D1, summary: "", trust: user_confirmed}  # trust: user_confirmed / ai_generated / stale；接力方不得重开 user_confirmed
+  open_items: []      # 未完成项：{type: blocker|todo|question, desc, owner}
 
 # stage 可选值（与阶段编号对应）
 # requirement-clarification, solution-design, user-confirmation,
@@ -713,7 +755,7 @@ artifacts:
 8. **在审查发现功能错误时，未经修复就进入复盘或结束流程**
 9. **在收到阶段 3 有效确认前，以"用户可能想快点看到结果"为由提前执行代码**
 10. **跳过执行前自检直接写代码**（tasks.md 的可行性、依赖闭环、文件清单对齐必须在动手前验证）
-11. **跳过执行后预自检直接进入 code-review**（执行者必须先自检一遍，不能把明显错误推给审查环节）
+11. **跳过执行后预自检直接进入 code-review**（执行者必须先自检一遍，不能把明显错误推给审查环节；S 档按分级规则将自检并入阶段 6 执行除外）
 12. **阶段 7 最终编译前未处理需单独请示的情形**：阶段 3 确认已覆盖常规编译授权，但在编译命令未确认、构建时间过长、用户此前跳过编译后重新编译、用户要求变更编译命令时，必须再次请示，不得擅自执行
 13. **阶段 1 未确认编译方法就进入阶段 2 设计**：编译与运行验证方式必须在需求澄清阶段明确提出并由用户确认
 14. **阶段 7 使用未经阶段 1/3 确认的编译命令**：未经用户确认的编译命令禁止执行，必须先回到阶段 1/2 补充确认
@@ -722,16 +764,17 @@ artifacts:
 17. **禁止用非结构化内容替代必要交付物**：阶段输出必须保持结构化，确保用户可快速确认并衔接后续流程
 18. **未声明角色或角色声明未获用户确认就动手改文件**：角色确认是动手前置条件，声明必须经用户明确确认后写入 workflow-state.md 的 `roles` 段（含 `user_confirmed` 标记），模型不得自行确认角色
 19. **未经用户确认修改设计文档或越权扩大范围**：编码角色修正 plan/tasks/spec 必须先向用户说明并获得确认，确认后在设计文档中记录调整；骨架更新须先获用户确认；任何角色不得修改自身允许范围外的文件
-20. **无 SDD 设计产物直接编码**：编码依赖已确认设计，进入阶段 4 前必须确认 plan.md/tasks.md（或 TECH_SPEC/subtasks）存在且经用户确认，否则必须回到阶段 1 完成设计；更新骨架必须在编码验收通过后进行
+20. **无 SDD 设计产物直接编码**：编码依赖已确认设计，进入阶段 4 前必须确认按档位要求的设计产物（或 TECH_SPEC/subtasks）存在且经用户确认，否则必须回到阶段 1 完成设计；更新骨架必须在编码验收通过后进行
 
 ## 项目工程化工作流对接
 
 当项目存在 `AIRunWorkDocs/project_wiki/overview.md` 或 `AIRunWorkDocs/red_lines/red_lines.yaml` 时，视为已启用 `engineering-workflow`。此时：
 
-- **阶段 2（方案设计）**：由 `engineering-workflow` 生成/更新 `AIRunWorkDocs/runtime/TECH_SPEC.md` 与 `AIRunWorkDocs/runtime/subtasks.json`，替代通用 `spec-driven-agent` 的 spec/plan/tasks 模板。
+- **阶段 2（方案设计）**：由 `engineering-workflow` 生成/更新 `AIRunWorkDocs/runtime/TECH_SPEC.md` 与 `AIRunWorkDocs/runtime/subtasks.json`，替代通用 `spec-driven-agent` 的 spec/plan/tasks 模板。任务分级（S/M/L）同样适用，产物以 TECH_SPEC/subtasks 为载体，S 档从简。
 - **阶段 4（代码执行）**：由 `engineering-workflow` 按 8 阶段流水线推进，提供项目地图、红线、脚本验证与跨会话记忆。
-- **阶段 6（代码审查）**：审查者除对照通用规范外，还需检查 `AIRunWorkDocs/runtime/TECH_SPEC.md` §5 不变式与 `AIRunWorkDocs/red_lines/red_lines_critical.md`。
+- **阶段 6（代码审查）**：审查者除对照通用规范外，还需检查 `AIRunWorkDocs/runtime/TECH_SPEC.md` §5 不变式与 `AIRunWorkDocs/red_lines/red_lines_critical.md`。项目存在 `AIRunWorkDocs/quality/rubric.yaml` 时，按阶段 6「评审团与校准协议」执行。
 - **阶段 7（编译与运行验证）**：优先使用项目 `AIRunWorkDocs/tools/build_verify.sh`，以 sentinel 文件与退出码 0 为成功判据。
+- **阶段 8（验收/复盘）**：验收结果回写 `AIRunWorkDocs/quality/calibration.yaml`（漏判/误判），验收整改轮次回写到未拦住问题的标尺维度；复盘按红线生命周期输出候选红线进隔离区；沉淀归档时执行 SDD 蒸馏（digest + sdd_index 登记 + 原文入冷存储）。
 
 注意：`engineering-workflow` 替代 `spec-driven-agent` 在具体项目上的设计与执行角色，但不替代本 Skill 的总入口与质量门职责。语言相关细节由项目级 `agents/` 与 `semantic_bridge/` 承载。
 
@@ -744,7 +787,7 @@ artifacts:
 
 子 Skill 负责各自领域的专业输出：
 - requirement-clarifier：需求怎么澄清、确认单怎么写
-- spec-driven-agent：spec/plan/tasks 怎么写、自评怎么打（已启用工程工作流的项目除外）
+- spec-driven-agent：spec-plan/tasks 怎么写、自评怎么打（已启用工程工作流的项目除外）
 - engineering-workflow：项目工程化需求开发、项目地图、红线、跨会话记忆
 - mermaid-diagrams：方案中的流程图/时序图/类图怎么画
 - testing-strategy：测试方案与用例怎么设计

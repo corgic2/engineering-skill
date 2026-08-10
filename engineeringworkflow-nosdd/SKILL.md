@@ -1,7 +1,7 @@
 ---
 name: engineeringworkflow-nosdd
 description: |
-  轻量项目工程化工作流（无 SDD 重型流程）。为任意语言项目提供基于知识库的开发能力：代码侧地图（project_wiki）、红线约束、脚本兜底验证、跨会话记忆（TECH_SPEC/subtasks/timeline）、工程经验库（experience/，提炼工序委托 team-experience-curator）。
+  轻量项目工程化工作流（无 SDD 重型流程）。为任意语言项目提供基于知识库的开发能力：代码侧地图（project_wiki）、红线约束（含候选挖掘/隔离区/衰减的生命周期）、脚本兜底验证、跨会话记忆（TECH_SPEC/subtasks/timeline + handoff.yaml 结构化交接）、分层记忆（工作层 daily notes→长期层）、工程经验库（experience/，提炼工序委托 team-experience-curator）。
   当用户请求涉及已启用本工作流的项目（存在 AIRunWorkDocs/project_wiki/overview.md 或 AIRunWorkDocs/red_lines/red_lines.yaml）时触发；也用于为新项目生成该工程骨架。
   触发场景：
   (1) 为项目初始化工程规范骨架；
@@ -33,7 +33,7 @@ description: |
 | 定位 | 文件 + 行号 + 调用链 | 五步定位法完成 |
 | 实现 | 代码改动 | 自底向上，先看后写 |
 | 验证 | `build_report.txt` + `result.md`/运行证据 | 退出码 0 + BUILD_PASS + sentinel 未过期，关键路径命中 |
-| 沉淀 | 更新 `TECH_SPEC.md` / wiki + 经验条目（可选） | §3/§7/§8 同步，wiki 无漂移，经验提炼检查完成 |
+| 沉淀 | 更新 `TECH_SPEC.md` / wiki + 提炼进长期层（ADR/经验/红线候选）+ 更新 `handoff.yaml` | §3/§7/§8 同步，wiki 无漂移，handoff 交接块已刷新，经验提炼检查完成 |
 
 复杂需求（改动跨多模块）先写一份简版任务清单到 `runtime/subtasks.json`（id/title/status/related_commit 即可），做完一项勾一项；简单需求直接干，不必建清单。
 
@@ -58,6 +58,8 @@ description: |
 2. 启动时加载：`SKILL.md` + `AIRunWorkDocs/project_wiki/overview.md` + `AIRunWorkDocs/red_lines/red_lines_critical.md`。
 3. 命中模块后加载 `AIRunWorkDocs/project_wiki/<module>.md` 与对应红线；经验库必须先查 `AIRunWorkDocs/experience/README.md` 的 component 索引，仅在索引命中时加载其映射文件，**禁止按类名猜文件名**，未命中不加载。
 4. 涉及 UI/DB/协议时加载对应语义桥 `project_wiki/semantic_bridge/`。
+5. **wiki 两趟扫描**：wiki 模块页顶部携带机器可读元数据（front-matter 或 `root_dirs` 注释块，至少含覆盖目录/关键符号/加载成本/最近校验时间）。第一趟只读各页元数据决定加载哪几页正文，第二趟按需加载正文与图谱邻域。每阶段设 token 预算，超预算必须裁剪或请示，禁止默认全量灌入。
+6. **跨会话接力只读交接文件**：存在 `runtime/handoff.yaml` 时，接力方只读其 `context_manifest` 指定的文件恢复现场，不自行扫描仓库或历史记录猜测现场。
 
 大文件（>10k 词）使用 grep 检索式，不直接全读。
 
@@ -78,12 +80,26 @@ description: |
 
 每次代码改动后运行 `AIRunWorkDocs/tools/validate_constraints.py` 与 `AIRunWorkDocs/tools/check_project_wiki_stale.py`，任一不过阻断提交。
 
+## 分层记忆（轻量版）
+
+无 SDD 流程意味着没有 per-需求设计文档可蒸馏，但也意味着**没有中间层兜底**——经验若不当场提炼进长期层就会丢失。记忆分两层半：
+
+| 层 | 载体 | 回答 | 生命周期 |
+|---|---|---|---|
+| L0 工作层 | `runtime/timeline.txt`（流水）+ `runtime/worklog/YYYY-MM-DD.md`（可选 daily notes，复杂需求才建） | 当时经历了什么 | 会话级；timeline 受字节预算约束（基线 ≤4KB），只留里程碑 |
+| L1 交接层 | `runtime/handoff.yaml` | 下一个会话/模型接手需要什么 | 每轮沉淀时刷新，始终只反映当前现场 |
+| L2 长期层 | `project_wiki/`、`decisions/`（ADR 一段式）、`red_lines/`、`experience/` | 现在是什么样 / 为什么 / 不许做什么 / 别踩什么坑 | 长期，只留结论 |
+
+**沉淀时的提炼分流**（每次主循环「沉淀」步骤必做）：有理由的决策 → `decisions/` ADR；被纠正的约定 → 红线候选（见「红线生命周期」）；模块地图变化 → project_wiki 增量；反直觉坑 → experience（委托 team-experience-curator）；纯流水留在 timeline 或直接丢弃。做骨架精简时禁止把反直觉根因连同流水一起删除。
+
+**防囤积门禁**：骨架与记忆文件受字节预算机器约束（基线：overview ≤5KB / TECH_SPEC ≤16KB / timeline ≤4KB / ADR 一段式），由 `validate_constraints.py` 执行。
+
 ## 五步定位法
 
 1. **意图消歧**：只读 `overview.md` + 用户原话，形成技术解读（有歧义才问用户）。
 2. **模块定位**：读 `<module>.md`，输出 2-3 个候选文件路径。
-3. **关键词搜索**：调用 `rg`/ctags 脚本，**不进 LLM**。
-4. **调用链追踪**：读相关文件片段（~10K token），给出完整调用链。
+3. **关键词搜索**：项目存在 codegraph 索引（`.codegraph/`）时优先 `codegraph query <symbol>`；否则调用 `rg`/ctags 脚本，**不进 LLM**。
+4. **调用链追踪**：有索引时用 `codegraph callers/callees → impact --depth 2` 取静态调用链与影响面，再读相关文件片段（~10K token）确认。注意：图谱只覆盖静态结构；Qt 信号/槽、事件、回调等**运行时连接图谱不可见**，其注册-触发-注销链路必须以 wiki/经验库记录为准，不得因图谱无记录而判定不存在。
 5. **验证确认**：读函数实现（~5K token），确认最终改动点 + 理由。
 
 ## 红线机制
@@ -109,6 +125,15 @@ Critical 红线至少包括：
 
 项目实例化时允许按项目风险本地化 Critical 的内容与编号，但必须保持语义覆盖（先读后写、禁硬编码、构建判据、验证后归档、机器门禁），且与上述编号的映射关系须在项目 `red_lines.yaml` 中可溯源。
 
+### 红线生命周期（候选挖掘、隔离区与衰减）
+
+无 SDD 流程时没有 review 报告可挖掘，违规语料来自 **timeline 的 human-correction 事件与用户验收打回记录**：
+
+1. **挖掘**：沉淀/复盘时把用户纠正规范化为 violations 条目；同一 pattern 累计 ≥2 次 → 起草候选红线写入 `red_lines_candidates.yaml`（status: proposed）。单次违规只进经验库，不进红线。
+2. **可机器化分级**：每条候选必须归类——脚本可执行（生成检查脚本进 pre-commit）/ 清单项（进定位或实现步骤的检查点）/ 建议级（只进经验库，不配当门禁）。
+3. **隔离区**：候选先 probation（warn-only 不阻断），统计命中数与误报数；误报高自动降级淘汰，表现干净交用户裁决晋升正式红线。隔离区文件结构对齐治理豁免清单模式（owner / reason / user_confirmed）。
+4. **衰减**：正式红线记录命中数，连续 N 个 session 零命中 → 标记移除候选交用户裁决。规则囤积与文档囤积同为负资产。
+
 ## 脚本兜底
 
 LLM 只读结果 + 下决策；精确数值与幂等执行下沉脚本：
@@ -119,6 +144,7 @@ LLM 只读结果 + 下决策；精确数值与幂等执行下沉脚本：
 - `AIRunWorkDocs/tools/check_build_freshness.py`：复用既有构建结果前校验 sentinel 未过期（sentinel mtime 不早于源码与构建登记文件的最新 mtime）。
 - `AIRunWorkDocs/tools/new_tech_spec.py`：按模板渲染 `runtime/TECH_SPEC.md`。
 - `AIRunWorkDocs/tools/render_commit_msg.py`：三段式 commit 渲染。
+- `AIRunWorkDocs/tools/validate_handoff.py`：`runtime/handoff.yaml` schema 校验（context_manifest / decisions.trust / open_items 齐全性），纳入提交门禁。
 
 任何长跑命令成功以 sentinel 文件或目标文件更新为唯一判据，不信 stdout。
 
@@ -127,6 +153,12 @@ LLM 只读结果 + 下决策；精确数值与幂等执行下沉脚本：
 - **`AIRunWorkDocs/runtime/TECH_SPEC.md`**：永久单一事实源，典型含 §0 进场自检/§1 功能边界/模块地图/不变式/演进事件/产物清单等；**章节集合与编号由项目裁剪，以项目 TECH_SPEC 实际目录为准**，不得凭本 Skill 的示例编号引用章节。
 - **`AIRunWorkDocs/runtime/subtasks.json`**：跨会话台账，记录每个子需求状态与关联 commit（复杂需求才建）。
 - **`AIRunWorkDocs/runtime/timeline.txt`**：会话内 start/human-correction/commit 流水。
+- **`AIRunWorkDocs/runtime/handoff.yaml`**：结构化交接块（机器真源），字段至少含：
+  - `context_manifest`：恢复现场的确定性取件单（`preload` / `on_demand` / `skip` / `budget_tokens`）；跨会话或高低成本模型接力时只读此处指定文件。
+  - `decisions[].trust`：每条已决约束标注 `user_confirmed` / `ai_generated` / `stale`；接力方不得重开 `user_confirmed` 决策。
+  - `open_items[]`：未完成项清单（blocker / todo / question + owner）。
+
+  每轮沉淀时刷新，schema 由 `validate_handoff.py` 校验。自然语言描述只作人类摘要，不再承担状态同步职责。
 
 新会话入场按项目 README 与 TECH_SPEC §0 指定的顺序扫描（模板默认 §0 → §1 → §3 → §5 → §7，项目裁剪章节后以其自身指引为准），目标 5 分钟恢复现场；随后按本次任务涉及模块，经 `experience/README.md` 索引加载对应经验条目，带项目语境进场。
 
@@ -135,7 +167,7 @@ LLM 只读结果 + 下决策；精确数值与幂等执行下沉脚本：
 当用户要求"为项目初始化工程骨架"时：
 
 1. 读取 `assets/` 下的模板。
-2. 在项目根目录生成 `AIRunWorkDocs/`，包含：`docs/`、`project_wiki/`、`red_lines/`、`tools/`、`runtime/`、`agents/`、`experience/`（含 `experience/README.md` 索引模板，条目由沉淀步骤按需填充）。
+2. 在项目根目录生成 `AIRunWorkDocs/`，包含：`docs/`、`project_wiki/`、`red_lines/`（含 `red_lines_candidates.yaml` 隔离区）、`tools/`（含 `validate_handoff.py`）、`runtime/`（含 `handoff.yaml` 模板）、`agents/`、`experience/`（含 `experience/README.md` 索引模板，条目由沉淀步骤按需填充）、`decisions/`（ADR 一段式条目）。
 3. 根据用户提供的模块清单填充 `AIRunWorkDocs/project_wiki/overview.md` 与 `<module>.md`。
 4. 生成 `AIRunWorkDocs/red_lines/red_lines.yaml` 并派生 `red_lines_critical.md`。
 5. 安装版本化 pre-commit hook：提交 `.githooks/pre-commit` 并执行 `git config core.hooksPath .githooks`（随仓库版本化、跨平台）；hook 按失败关闭策略依次调用 `AIRunWorkDocs/tools/validate_constraints.py` 与 `check_project_wiki_stale.py`。

@@ -34,6 +34,15 @@ REQUIRED_FILES = (
 # PROJECT_CHECKS = (("禁止硬编码密钥", check_no_hardcoded_secrets),)
 PROJECT_CHECKS = ()
 
+# 防囤字节预算：骨架与记忆文件超过预算即违规。按项目裁剪。
+BYTE_BUDGETS = {
+    "AIRunWorkDocs/project_wiki/overview.md": 5 * 1024,
+    "AIRunWorkDocs/runtime/TECH_SPEC.md": 16 * 1024,
+    "AIRunWorkDocs/runtime/timeline.txt": 4 * 1024,
+}
+# SDD digest 单页预算（存在 Agentic/sdd 时逐页检查）
+DIGEST_BUDGET = 2 * 1024
+
 
 def main():
     violations = []
@@ -41,6 +50,17 @@ def main():
     for rel in REQUIRED_FILES:
         if not (PROJECT_ROOT / rel).is_file():
             violations.append("缺少骨架必需文件: {0}".format(rel))
+
+    for rel, limit in BYTE_BUDGETS.items():
+        f = PROJECT_ROOT / rel
+        if f.is_file() and f.stat().st_size > limit:
+            violations.append("超字节预算({0}B): {1} 现 {2}B".format(limit, rel, f.stat().st_size))
+
+    for sdd in (PROJECT_ROOT / "Agentic" / "sdd", PROJECT_ROOT / "sdd"):
+        if sdd.is_dir():
+            for digest in sdd.glob("*/digest.md"):
+                if digest.stat().st_size > DIGEST_BUDGET:
+                    violations.append("digest 超 {0}B 预算: {1}".format(DIGEST_BUDGET, digest))
 
     for name, check in PROJECT_CHECKS:
         result = check(PROJECT_ROOT)

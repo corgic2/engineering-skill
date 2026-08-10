@@ -54,3 +54,7 @@ red_lines:
 - **RL-30 视觉对齐**：UI 改动必须存在 `ui_alignment_spec.md` 且未对齐项为 0。
 - **RL-31 commit 判据**：以 `git log -1` hash 更新为成功证据。
 - **RL-32 落盘判定**：长跑命令成功以 sentinel 文件存在为据。
+
+## 红线生命周期
+
+候选挖掘（同一 violations pattern ≥2 次）→ 隔离区 probation（warn-only 不阻断）→ 用户裁决晋升 → 零命中衰减，详见 SKILL.md「红线生命周期」。候选写入 `red_lines_candidates.yaml`，只有正式红线才进 `red_lines.yaml`。
